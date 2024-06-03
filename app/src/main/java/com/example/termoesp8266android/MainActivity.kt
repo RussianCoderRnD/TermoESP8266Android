@@ -18,6 +18,8 @@ import android.graphics.BitmapFactory
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.graphics.Color
+import android.os.Handler
+import android.os.Looper
 
 
 var jsonString="" // Глобальная переменная для хранения JSON строки
@@ -60,6 +62,17 @@ class MainActivity : AppCompatActivity() {
     private lateinit var textViewIn3: TextView // Объявление переменной для TextView
     private lateinit var textViewIn4: TextView // Объявление переменной для TextView
     private lateinit var textViewTemp: TextView // Объявление переменной для TextView
+
+    // Handler для выполнения задач с задержкой
+    private val handler = Handler(Looper.getMainLooper())
+    // Runnable для периодического выполнения fetchDataFromESP8266
+    private val fetchDataRunnable = object : Runnable {
+        override fun run() {
+          //  receiveJsonFromEsp8266()
+            // Перезапускаем runnable через 1 секунду
+            handler.postDelayed(this, 1000)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
