@@ -17,6 +17,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.graphics.Color
 
 
 var jsonString="" // Глобальная переменная для хранения JSON строки
@@ -65,6 +66,8 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main) // Установка layout для активности
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE // Устанавливаем ориентацию на ландшафтную
 
+        val imageButton: ImageButton = findViewById(R.id.imageButtonPowerOnOff)
+        imageButton.setBackgroundColor(android.graphics.Color.TRANSPARENT)
 
         // Инициализация TextView
         textViewOut1 = findViewById(R.id.textViewOut1)
