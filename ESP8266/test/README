@@ -1,0 +1,335 @@
+/*12.05.2024*/
+
+//---------------- БИБЛИОТЕКИ START ---------------------
+#include <Arduino.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
+#include <ArduinoJson.h>
+//----------------- БИБЛИОТЕКИ END-----------------------
+
+//-------------------- DEFINE START ---------------------
+#define Pin_MIT A0                // пин с которого будет сниматься показания датчика тока
+#define PinRelay_LEFT_GABARIT D1  //
+#define PinRelay_RIGHT_GABARIT D2 //
+#define PinRelay_LEFT_POVOROT D3  //
+#define PinRelay_RIGHT_POVOROT D4 //
+#define PinRelay_STOP_SIGNAL D5   //
+#define PinRelay_ZADNY_XOD D6     //
+#define PinRelay_TUMANKA D7       //
+#define Relay_current_volt D8     //
+#define WiFi_Status D0            //
+//-------------------- DEFINE END -----------------------
+
+//----------------- CONSTANTS START ---------------------
+//const char *ssid = "Keenetic-9461";
+//const char *password = "VAsbNoxP";
+const char *ssid = "Samsung 8S";
+const char *password = "Acer5560g!";
+//----------------- CONSTANTS END -----------------------
+
+//------------ СОЗДАНИЕ ЭКЗЕМПЛЯРА START ----------------
+ESP8266WebServer server(80); // Объект сервера на порту 80
+//------------- СОЗДАНИЕ ЭКЗЕМПЛЯРА END -----------------
+
+//---------------- ПЕРЕМЕННЫЕ START----------------------
+float KZ = 8.0; // переменная с присвоеным значением
+float LG = 0.0;
+float PG = 0.0;
+float LP = 0.0;
+float PP = 0.0;
+float STOP = 0.0;
+float ZX = 0.0;
+float FOG = 0.0;
+uint8_t BATT = 0;
+uint8_t count = 0;
+float mit = 0.0;
+uint8_t temp;
+String ArrayNamesLine[] = {"LEFT_GABARIT", "RIGHT_GABARIT", "LEFT_POVOROT", "RIGHT_POVOROT", "STOP_SIGNAL", "ZADNY_XOD", "TUMANKA"};
+float ArrayLineMit[] = {0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00};
+int ArrayLinePin[] = {PinRelay_LEFT_GABARIT, PinRelay_RIGHT_GABARIT, PinRelay_LEFT_POVOROT, PinRelay_RIGHT_POVOROT, PinRelay_STOP_SIGNAL, PinRelay_ZADNY_XOD, PinRelay_TUMANKA}; // 24, 22, 23, 27, 25, 26, 28
+
+//----------------- ПЕРЕМЕННЫЕ END ----------------------
+
+//----------------- СПИСОК ФУНКЦИЙ START-----------------
+void OutMesage();          // функция передачи JSON
+void InMesage();           // функция приёма JSON
+void MIT_measurement();    // функция измерения тока
+void NameLinePin(uint8_t); //
+void testLine();
+void blinks(int, int, int8_t);
+void Menu();
+//----------------- СПИСОК ФУНКЦИЙ END ------------------
+
+//--------------------- SETUP START ---------------------
+void setup(void)
+{
+  Serial.begin(115200); // открываем порт для связи с ПК
+  pinMode(PinRelay_LEFT_GABARIT, OUTPUT);
+  pinMode(PinRelay_RIGHT_GABARIT, OUTPUT);
+  pinMode(PinRelay_LEFT_POVOROT, OUTPUT);
+  pinMode(PinRelay_RIGHT_POVOROT, OUTPUT);
+  pinMode(PinRelay_STOP_SIGNAL, OUTPUT);
+  pinMode(PinRelay_ZADNY_XOD, OUTPUT);
+  pinMode(PinRelay_TUMANKA, OUTPUT);
+  pinMode(Relay_current_volt, OUTPUT);
+  pinMode(WiFi_Status, OUTPUT);
+
+  digitalWrite(PinRelay_LEFT_GABARIT, LOW);
+  digitalWrite(PinRelay_RIGHT_GABARIT, LOW);
+  digitalWrite(PinRelay_LEFT_POVOROT, LOW);
+  digitalWrite(PinRelay_RIGHT_POVOROT, LOW);
+  digitalWrite(PinRelay_STOP_SIGNAL, LOW);
+  digitalWrite(PinRelay_ZADNY_XOD, LOW);
+  digitalWrite(PinRelay_TUMANKA, LOW);
+  digitalWrite(Relay_current_volt, LOW);
+  digitalWrite(WiFi_Status, LOW);
+
+  // *** инициализация WiFi
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    Serial.print(".");
+    blinks(150, 50, 1);
+  }
+  digitalWrite(WiFi_Status, HIGH); 
+  Serial.println();
+  Serial.println("WiFi connected");
+  // ***
+  // *** формат получения запросов из WiFi
+  server.on("/test", OutMesage);             // Регистрируем обработчик главной страницы
+  server.on("/upload", HTTP_POST, InMesage); // Определение обработчика для пути "/upload"
+                                             // ***
+
+  server.begin(); // Запускаем сервер
+
+  Serial.println("HTTP server started");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+}
+//--------------------- SETUP END -----------------------
+
+//------------------- LOOP START ------------------------
+void loop(void)
+{
+  server.handleClient(); // Постоянно слушаем WiFi
+  Menu();
+}
+//--------------------- LOOP END ------------------------
+
+void NameLinePin(uint8_t Nam_LINE)
+{ /* функция принимает номер пина реле:
+   - привинтивно выключаем реле,
+   - создаём и инициализируем переменные в "0"
+   - включаем реле
+   - создаём масив для цекличной записи значений и вычисление среднего значения
+   */
+
+  digitalWrite(Relay_current_volt, HIGH);
+  uint8_t mVperAmp = 66;
+  int RawValue = 0;
+  uint16_t ACSoffset = 2650; // 2462
+  float Voltage = 0.00;
+  float Amps = 0.00;
+  float mit2 = 0.00;
+  digitalWrite(Nam_LINE, HIGH); // устанавливаем состояние как HIGH тем самым включаем линию
+  float arrTemp[10];            // записываем в массив измеренный вцикле mit
+  int sizeArrTemps = sizeof(arrTemp) / sizeof(float *) / 2;
+  delay(500);
+  for (int i = 0; i < sizeArrTemps;)
+  {
+    RawValue = analogRead(Pin_MIT);
+    // для вычисления mit мы значения полученные с аналогово входа делим на 1024 и умножаем на половину опорного напряжения умножнную на два
+    // затем отполученного отнимаем половину опорногонапряжения и делим на чуствительность датчика тока (ACS712)
+    mit = random(0,8);//((((RawValue / 1023.0) * (ACSoffset * 2)) - ACSoffset) / mVperAmp); // для полу
+    int p = 0;
+    p++;
+    if (mit >= KZ) // вслучае KZ выходим изцикла   && p == 2
+    {
+      for (int ii = 0; ii < sizeArrTemps;)
+      {
+        arrTemp[ii] = mit; // в случае KZ запмисываем в массив с номером ячейки на линии которой KZ записываем mit, чтобы алгаритм не включал эту линию
+        ii++;
+      }
+      break;
+    }
+    arrTemp[i] = mit;
+    i++;
+    delay(25);
+  }
+
+  mit2 = 0;
+  // через цикл суммируем значения всехячеек масива и делим на колличество ячеек тем свмым получаем среднее значение
+  for (int r = 0; r < sizeArrTemps; r++)
+  {
+    mit2 += arrTemp[r];
+  }
+  mit = mit2 / sizeArrTemps;
+  // искключаем диапазон в котором "шумит" датчик Холла
+  if (mit <= 0.16)
+  {
+    mit = 0.00;
+  }
+  digitalWrite(Nam_LINE, LOW); // устанавливаем состояние как LOW тем самым выключаем
+  digitalWrite(Relay_current_volt, LOW);
+}
+
+void testLine()
+{
+  for (int y = 0; y < 7;)
+  {
+    blinks(50, 50, 1);
+    NameLinePin(ArrayLinePin[y]);
+    ArrayLineMit[y] = mit;
+    Serial.println();
+    Serial.print(ArrayNamesLine[y]);
+    Serial.print(" - ");
+    Serial.print(ArrayLineMit[y]);
+    Serial.println();
+    y++;
+  }
+}
+
+void OutMesage()
+{
+  count = 0;
+  digitalWrite(Relay_current_volt, LOW);
+  BATT = (analogRead(A0) / 1024.0) * 100.0;
+  delay(250);
+  testLine();
+
+  LG=ArrayLineMit[0];
+  PG=ArrayLineMit[1];
+  LP=ArrayLineMit[2];
+  PP=ArrayLineMit[3];
+  STOP=ArrayLineMit[4];
+  ZX=ArrayLineMit[5];
+  FOG=ArrayLineMit[6];
+
+  String jsonData = "{\"LG\": " + String(LG) + ", \"PG\": " + String(PG) + ", \"LP\": " + String(LP) + ", \"PP\": " + String(PP) + ", \"STOP\": " + String(STOP) + ", \"ZX\": " + String(ZX) + ", \"FOG\": " + String(FOG) + ", \"ZX\": " + String(ZX) + ", \"BATT\": " + String(BATT) + ", \"count\": " + String(count) + "}";
+  server.send(200, "application/json", jsonData); // Отправляем данные в JSON формате
+  Serial.printf("count: %d, BATT: %d, LG: %.1f, PG: %.1f, LP:%.1f, PP:%.1f, STOP: %.1f, ZX: %.1f, FOG: %.1f\n",
+                count, BATT, LG, PG, LP, PP, STOP, ZX, FOG);
+}
+void InMesage()
+{
+  blinks(50, 50, 1);
+  if (!server.hasArg("plain"))
+  {
+    server.send(400, "text/plain", "400: Invalid request");
+    return;
+  }
+  DynamicJsonDocument doc(1024);
+  DeserializationError error = deserializeJson(doc, server.arg("plain"));
+
+  if (error)
+  {
+    server.send(500, "text/plain", "500: Could not decode JSON");
+    return;
+  }
+
+  count = doc["count"];
+  // float value2 = doc["value2"];
+  // String value3 = doc["value3"].as<String>();
+
+  Serial.print("Count: ");
+  Serial.println(count);
+
+  server.send(200, "text/plain", "Data received successfully");
+}
+
+//--------------- MENU START ------------------
+void Menu()
+{
+  if (count == 0)
+  {
+    digitalWrite(PinRelay_LEFT_GABARIT, LOW);
+    digitalWrite(PinRelay_RIGHT_GABARIT, LOW);
+    digitalWrite(PinRelay_LEFT_POVOROT, LOW);
+    digitalWrite(PinRelay_RIGHT_POVOROT, LOW);
+    digitalWrite(PinRelay_STOP_SIGNAL, LOW);
+    digitalWrite(PinRelay_ZADNY_XOD, LOW);
+    digitalWrite(PinRelay_TUMANKA, LOW);
+  }
+
+  if (count == 1 && ArrayLineMit[0] != KZ)
+  {
+    digitalWrite(PinRelay_LEFT_GABARIT, HIGH);
+    Serial.println("PinRelay_LEFT_GABARIT");
+  }
+  else
+  {
+    digitalWrite(PinRelay_TUMANKA, LOW);
+  }
+
+  if (count == 2 && ArrayLineMit[1] != KZ)
+  {
+    digitalWrite(PinRelay_RIGHT_GABARIT, HIGH);
+    Serial.println("PinRelay_RIGHT_GABARIT");
+  }
+  else
+  {
+    digitalWrite(PinRelay_LEFT_GABARIT, LOW);
+  }
+
+  if (count == 3 && ArrayLineMit[2] != KZ)
+  {
+    digitalWrite(PinRelay_LEFT_POVOROT, HIGH);
+    Serial.println("PinRelay_LEFT_POVOROT");
+  }
+  else
+  {
+    digitalWrite(PinRelay_RIGHT_GABARIT, LOW);
+  }
+
+  if (count == 4 && ArrayLineMit[3] != KZ)
+  {
+    digitalWrite(PinRelay_RIGHT_POVOROT, HIGH);
+    Serial.println("PinRelay_RIGHT_POVOROT");
+  }
+  else
+  {
+    digitalWrite(PinRelay_LEFT_POVOROT, LOW);
+  }
+
+  if (count == 5 && ArrayLineMit[4] != KZ)
+  {
+    digitalWrite(PinRelay_STOP_SIGNAL, HIGH);
+    Serial.println("PinRelay_STOP_SIGNAL");
+  }
+  else
+  {
+    digitalWrite(PinRelay_RIGHT_POVOROT, LOW);
+  }
+
+  if (count == 6 && ArrayLineMit[5] != KZ)
+  {
+    digitalWrite(PinRelay_ZADNY_XOD, HIGH);
+    Serial.println("PinRelay_ZADNY_XOD");
+  }
+  else
+  {
+    digitalWrite(PinRelay_STOP_SIGNAL, LOW);
+  }
+
+  if (count == 7 && ArrayLineMit[6] != KZ)
+  {
+    digitalWrite(PinRelay_TUMANKA, HIGH);
+    Serial.println("PinRelay_TUMANKA");
+  }
+  else
+  {
+    digitalWrite(PinRelay_ZADNY_XOD, LOW);
+  }
+}
+//---------------- MENU END -------------------
+
+void blinks(int del, int del2, int8_t coun = 1)
+{
+  for (size_t i = 0; i < coun; i++)
+  {
+    digitalWrite(WiFi_Status, HIGH); // turn the LED on (HIGH is the voltage level)
+    delay(del);                      // wait for a second
+    digitalWrite(WiFi_Status, LOW);  // turn the LED off by making the voltage LOW
+    delay(del2);
+  }
+}
