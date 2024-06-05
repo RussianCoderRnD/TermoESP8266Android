@@ -21,6 +21,9 @@ import android.graphics.Color
 import android.os.Handler
 import android.os.Looper
 
+import android.widget.SeekBar
+import com.google.android.material.snackbar.Snackbar
+
 
 var jsonString="" // Глобальная переменная для хранения JSON строки
 var count = 0f //установленная температура
@@ -77,6 +80,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main) // Установка layout для активности
+
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE // Устанавливаем ориентацию на ландшафтную
 
         val imageButton: ImageButton = findViewById(R.id.imageButtonPowerOnOff)
@@ -98,7 +102,7 @@ class MainActivity : AppCompatActivity() {
 
 
         // Пример вызова функции для отображения подвыборки изображения
-       imageViewFaza1 = findViewById<ImageView>(R.id.imageViewFaza1)
+        imageViewFaza1 = findViewById<ImageView>(R.id.imageViewFaza1)
         imageViewFaza2 = findViewById<ImageView>(R.id.imageViewFaza2)
         imageViewFaza3 = findViewById<ImageView>(R.id.imageViewFaza3)
         imageViewHotOnOff = findViewById<ImageView>(R.id.imageViewFazaOnOff)
@@ -124,9 +128,7 @@ class MainActivity : AppCompatActivity() {
                 // Установка значения переменной в TextView
                 textViewTemp.text = "$temp"
                 generateAndPrintJson() // Генерация и вывод JSON строки при клике
-
             }
-
         }
 
         findViewById<ImageButton>(R.id.imageButtonPowerOnOff).setOnClickListener {
@@ -213,7 +215,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         })
-
     }
 
     private fun receiveJsonFromEsp8266() {
@@ -259,15 +260,12 @@ class MainActivity : AppCompatActivity() {
                                 receiveJsonFromEsp8266TextViwe()
                             }
                         }
-
                     } else {
                         println("Не удалось получить JSON, код ответа: ${resp.code}")
                     }
                 }
-
             }
         })
-
     }
     private fun receiveJsonFromEsp8266TextViwe() {
         textViewIn1.text = temp.toString() // Отображение JSON строки в TextView
@@ -329,9 +327,5 @@ class MainActivity : AppCompatActivity() {
 
         if (hot ==1){imageViewPompOnOff.setImageResource(R.drawable.lampon)}
         else {imageViewPompOnOff.setImageResource(R.drawable.lampoff)}
-
-//
-//
     }
-
 }
