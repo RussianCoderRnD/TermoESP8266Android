@@ -4,11 +4,15 @@
 #include <ESP8266WebServer.h> // Библиотека для создания web сервера на ESP8266
 #include <ArduinoJson.h>      // Библиотека для работы с JSON
 #include <EEPROM.h>           // библиотека EEPROM
+#include <microDS18B20.h>     // библиотека управления термо регулятором
+#include "GyverRelay.h"       // библиотека управления реле
 
 //------------ Определение констант и настройка пинов ------------
 #define WiFi_Status D0 // Определение пина для индикации статуса WiFi
 #define INIT_ADDR 1023 // номер резервной ячейки. EEPROM
 #define INIT_KEY 50    // ключ первого запуска. 0-254, на выбор. EEPROM
+#define DS_PIN 0       // ПИН термо датчика
+#define MOS_PIN 5      // пин выхода реле
 
 //------------ Настройка параметров WiFi соединения ------------
 // const char *ssid = "Samsung 8S";     // SSID для подключения к WiFi
@@ -17,15 +21,17 @@ const char *ssid = "Keenetic-9461";
 const char *password = "VAsbNoxP";
 //------------ Создание объекта сервера на порту 80 ------------
 ESP8266WebServer server(80);
-
+MicroDS18B20<DS_PIN> sensor;  // активайия термо датчиа
+GyverRelay regulator(NORMAL); // направление регулирования, либо GyverRelay regulator(); без указания направления (будет
 //------------ Переменные для демонстрации ответа на GET запрос ------------
 
-int f1 = 1, f2 = 0, f3 = 1, pomp = 1, hot = 1;
+int f1 = 0, f2 = 0, f3 = 0, pomp = 0, hot = 0;
 float temp = 0.5;
 int in2 = 1, in3 = 0, in4 = 1;
 float memtemp = 20.0;
 uint32_t eepromTimer = 0;   // EEPROM таймер
 boolean eepromFlag = false; // EEPROM флаг = 0
+uint8_t alarmTemp = 95;
 
 //------------ Объявление прототипов функций ------------
 void handlePost(); // Функция для обработки POST запросов
@@ -39,8 +45,10 @@ void EEPROMRead();
 //------------ Настройка устройства ------------
 void setup(void)
 {
-  Serial.begin(115200);           // Начало серийной связи с бодрейтом 115200
-  pinMode(WiFi_Status, OUTPUT);   // Настройка пина статуса WiFi как выход
+  Serial.begin(115200);         // Начало серийной связи с бодрейтом 115200
+  pinMode(WiFi_Status, OUTPUT); // Настройка пина статуса WiFi как выход
+  pinMode(MOS_PIN, OUTPUT);     // пин реле
+
   digitalWrite(WiFi_Status, LOW); // Инициализация пина в низкое состояние
 
   initWiFi(); // Инициализация WiFi соединения
@@ -82,6 +90,7 @@ void handlePost()
   Serial.print("in4: ");
   Serial.println(in4);
   setBright();
+  blinks(150, 50, 1);                                         // Мигание светодиодом в процессе подключения
   server.send(200, "application/json", "{\"success\":true}"); // Отправка ответа с кодом 200
 }
 
@@ -118,6 +127,7 @@ void handleGet()
     return;
   }
   server.send(200, "application/json", jsonResponse); // Отправка сериализованного JSON
+  blinks(50, 150, 1);                                 // Мигание светодиодом в процессе подключения
 }
 
 //------------ Функция для инициализации WiFi ------------
@@ -146,6 +156,30 @@ void loop()
 {
   checkEEPROM();         // проверка EEPROM
   server.handleClient(); // Обработка подключений к серверу
+
+  sensor.requestTemp();
+  //////////////////////////////////////////////////////////////////
+  //                    логика работы реле                        //
+  //////////////////////////////////////////////////////////////////
+  regulator.hysteresis = 5;           // ширина гистерезиса
+  regulator.k = 1;                    // коэффициент обратной связи (подбирается по факту)
+  regulator.dT = 500;                 // установить время итерации для getResultTimer
+  regulator.setpoint = memtemp;       // установка температуры
+  temp = sensor.getTemp();            // преобразуем в цельсии
+  regulator.input = sensor.getTemp(); // сообщаем регулятору текущую температуру
+
+  if (temp > alarmTemp) {
+    digitalWrite(MOS_PIN, LOW);
+    hot=0;
+  }
+  else {
+    digitalWrite(MOS_PIN, !regulator.getResult());
+    if (regulator.getResult())    hot=1;
+    {
+      /* code */
+    }
+    
+  }
 }
 
 //------------ Функция для мигания светодиодом ------------
