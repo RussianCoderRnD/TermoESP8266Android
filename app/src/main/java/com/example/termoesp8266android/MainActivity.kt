@@ -184,7 +184,7 @@ class MainActivity : AppCompatActivity() {
         textViewOut3.text = vale3.toString() // Отображение JSON строки в TextView
         textViewOut4.text = vale4.toString() // Отображение JSON строки в TextView
         return JSONObject().apply {
-            put("settemp", count) // Добавление значения count
+            put("memtemp", count) // Добавление значения count
             put("vale2", vale2) // Добавление значения vale2
             put("vale3", vale3) // Добавление значения vale3
             put("vale4", vale4) // Добавление значения vale4
