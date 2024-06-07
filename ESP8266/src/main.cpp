@@ -175,9 +175,7 @@ void loop()
   else {
     digitalWrite(MOS_PIN, !regulator.getResult());
     if (regulator.getResult())    hot=1;
-    {
-      /* code */
-    }
+  
     
   }
 }
