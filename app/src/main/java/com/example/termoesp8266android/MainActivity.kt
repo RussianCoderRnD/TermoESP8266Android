@@ -27,6 +27,7 @@ import androidx.core.content.ContextCompat
 var jsonString="" // Глобальная переменная для хранения JSON строки
 var count = 0 //установленная температура
 var memtemp = 0.0f
+var counPower = 0;
 
 class MainActivity : AppCompatActivity() {
 
@@ -72,7 +73,7 @@ class MainActivity : AppCompatActivity() {
     // Runnable для периодического выполнения fetchDataFromESP8266
     private val fetchDataRunnable = object : Runnable {
         override fun run() {
-            receiveJsonFromEsp8266()
+         //   receiveJsonFromEsp8266()
             // Перезапускаем runnable через 1 секунду
 
 
@@ -124,7 +125,6 @@ class MainActivity : AppCompatActivity() {
         imageViewHotOnOff.setImageResource(R.drawable.lampoff)
         imageViewPompOnOff.setImageResource(R.drawable.lampoff)
 
-        var counPower = 0;
 
         mains(f1, f2, f3, pomp, hot)
         findViewById<Button>(R.id.button1).setOnClickListener {
@@ -325,7 +325,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun mains(f1: Int, f2:Int,f3:Int, pomp:Int, hot:Int) {
-        receiveJsonFromEsp8266() // Получение JSON строки от ESP8266 при клике
+
+        if (counPower == 1) {  receiveJsonFromEsp8266() // Получение JSON строки от ESP8266 при клике
+        }
+
         // Установка значения переменной в TextView
         textViewTemp.text = "$temp"
         if (f1 == 1) {imageViewFaza1.setImageResource(R.drawable.on)}

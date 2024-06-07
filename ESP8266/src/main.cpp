@@ -8,11 +8,11 @@
 #include "GyverRelay.h"       // библиотека управления реле
 
 //------------ Определение констант и настройка пинов ------------
-#define WiFi_Status D0 // Определение пина для индикации статуса WiFi
+#define WiFi_Status D5 // Определение пина для индикации статуса WiFi
 #define INIT_ADDR 1023 // номер резервной ячейки. EEPROM
 #define INIT_KEY 50    // ключ первого запуска. 0-254, на выбор. EEPROM
-#define DS_PIN 0       // ПИН термо датчика
-#define MOS_PIN 5      // пин выхода реле
+#define DS_PIN D0       // ПИН термо датчика
+#define MOS_PIN D4      // пин выхода реле
 
 //------------ Настройка параметров WiFi соединения ------------
 // const char *ssid = "Samsung 8S";     // SSID для подключения к WiFi
@@ -51,11 +51,11 @@ void setup(void)
 
   digitalWrite(WiFi_Status, LOW); // Инициализация пина в низкое состояние
 
-  initWiFi(); // Инициализация WiFi соединения
-
   EEPROM.begin(2); // активация функции EEPROM
-  EEPROMRead();
   memtemp = EEPROM.read(0); // считывание из EEPROM значений
+  EEPROMRead();
+
+  initWiFi(); // Инициализация WiFi соединения
 
   server.on("/out", HTTP_GET, handleGet);  // Регистрация обработчика для GET запросов
   server.on("/in", HTTP_POST, handlePost); // Регистрация обработчика для POST запросов
@@ -165,18 +165,18 @@ void loop()
   regulator.k = 1;                    // коэффициент обратной связи (подбирается по факту)
   regulator.dT = 500;                 // установить время итерации для getResultTimer
   regulator.setpoint = memtemp;       // установка температуры
-  temp = sensor.getTemp();            // преобразуем в цельсии
-  regulator.input = sensor.getTemp(); // сообщаем регулятору текущую температуру
+  temp = 65;//sensor.getTemp();            // преобразуем в цельсии
+  regulator.input = temp; // сообщаем регулятору текущую температуру
 
-  if (temp > alarmTemp) {
+  if (temp > alarmTemp)
+  {
     digitalWrite(MOS_PIN, LOW);
-    hot=0;
+    hot = 0;
   }
-  else {
+  else
+  {
     digitalWrite(MOS_PIN, !regulator.getResult());
-    if (regulator.getResult())    hot=1;
-  
-    
+   hot = !regulator.getResult();
   }
 }
 
