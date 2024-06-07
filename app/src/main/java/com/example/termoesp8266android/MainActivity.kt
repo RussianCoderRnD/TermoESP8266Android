@@ -11,25 +11,26 @@ import okhttp3.RequestBody.Companion.toRequestBody // Импорт метода 
 import org.json.JSONObject // Импорт класса JSONObject для создания и работы с JSON объектами
 import java.io.IOException // Импорт класса IOException для обработки исключений ввода-вывода
 import java.util.concurrent.TimeUnit // Импорт класса TimeUnit для указания единиц измерения времени (используется в настройках тайм-аутов)
-import kotlin.random.Random
 import android.content.pm.ActivityInfo // Класс для работы с информацией об активности, в данном случае для задания ориентации экрана
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.widget.ImageButton
 import android.widget.ImageView
-import android.graphics.Color
 import android.os.Handler
 import android.os.Looper
-
-import android.widget.SeekBar
-import com.google.android.material.snackbar.Snackbar
+import android.widget.ProgressBar
+import android.animation.ArgbEvaluator
+import android.graphics.PorterDuff
+import androidx.core.content.ContextCompat
 
 
 var jsonString="" // Глобальная переменная для хранения JSON строки
-var count = 0f //установленная температура
+var count = 0 //установленная температура
 var memtemp = 0.0f
 
 class MainActivity : AppCompatActivity() {
+
+    private lateinit var progressBar: ProgressBar
 
     // Инициализация переменных для значений JSON объекта
     private var vale2: Int = 0
@@ -73,6 +74,8 @@ class MainActivity : AppCompatActivity() {
         override fun run() {
           //  receiveJsonFromEsp8266()
             // Перезапускаем runnable через 1 секунду
+
+
             handler.postDelayed(this, 1000)
         }
     }
@@ -82,6 +85,8 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main) // Установка layout для активности
 
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE // Устанавливаем ориентацию на ландшафтную
+
+        progressBar = findViewById(R.id.progressBar)
 
         val imageButton: ImageButton = findViewById(R.id.imageButtonPowerOnOff)
         imageButton.setBackgroundColor(android.graphics.Color.TRANSPARENT)
@@ -120,11 +125,12 @@ class MainActivity : AppCompatActivity() {
         imageViewPompOnOff.setImageResource(R.drawable.lampoff)
 
         var counPower = 0;
+
         mains(f1, f2, f3, pomp, hot)
         findViewById<Button>(R.id.button1).setOnClickListener {
             if (counPower == 1) {
                 mains(f1, f2, f3, pomp, hot)
-                // receiveJsonFromEsp8266() // Получение JSON строки от ESP8266 при клике
+                receiveJsonFromEsp8266() // Получение JSON строки от ESP8266 при клике
                 // Установка значения переменной в TextView
                 textViewTemp.text = "$temp"
                 generateAndPrintJson() // Генерация и вывод JSON строки при клике
@@ -132,7 +138,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<ImageButton>(R.id.imageButtonPowerOnOff).setOnClickListener {
-            count = memtemp
+
             // Установка значения переменной в TextView
             textViewSetTemp.text = "$count"
             counPower++
@@ -145,16 +151,24 @@ class MainActivity : AppCompatActivity() {
 
 
         findViewById<ImageButton>(R.id.imageButtonUp).setOnClickListener {
+
             if (counPower == 1) {
                 count++
-                // Установка значения переменной в TextView
+
+
                 textViewSetTemp.text = "$count"
+                if (count > 129) { count=130
+                }
             }
+            val progressBar: ProgressBar = findViewById(R.id.progressBar)
+            progressBar.progress = count // Установите прогресс от 0 до 100
         }
 
         findViewById<ImageButton>(R.id.imageButtonDown).setOnClickListener {
             if (counPower == 1) {
             count--
+                if (count < 1) {count=0 }
+
             textViewSetTemp.text = "$count"
         }
 }
@@ -215,6 +229,8 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         })
+        updateProgressBarColor(temp)
+
     }
 
     private fun receiveJsonFromEsp8266() {
@@ -257,6 +273,7 @@ class MainActivity : AppCompatActivity() {
                             hot=hots
                             memtemp=memtemps.toFloat()
                             runOnUiThread {
+                                count= memtemp.toInt()
                                 receiveJsonFromEsp8266TextViwe()
                             }
                         }
@@ -269,7 +286,7 @@ class MainActivity : AppCompatActivity() {
     }
     private fun receiveJsonFromEsp8266TextViwe() {
         textViewIn1.text = temp.toString() // Отображение JSON строки в TextView
-        textViewIn2.text = f1.toString() // Отображение JSON строки в TextView
+        textViewIn2.text = memtemp.toString() // Отображение JSON строки в TextView
         textViewIn3.text = f2.toString() // Отображение JSON строки в TextView
         textViewIn4.text = f3.toString() // Отображение JSON строки в TextView
     }
@@ -327,5 +344,14 @@ class MainActivity : AppCompatActivity() {
 
         if (hot ==1){imageViewPompOnOff.setImageResource(R.drawable.lampon)}
         else {imageViewPompOnOff.setImageResource(R.drawable.lampoff)}
+    }
+
+    private fun updateProgressBarColor(progress: Float) {
+        val colorFrom = ContextCompat.getColor(this, android.R.color.holo_blue_light)
+        val colorTo = ContextCompat.getColor(this, android.R.color.holo_red_light)
+        val evaluator = ArgbEvaluator()
+        val fraction = progress / 130f
+        val color = evaluator.evaluate(fraction, colorFrom, colorTo) as Int
+        progressBar.progressDrawable.setColorFilter(color, PorterDuff.Mode.SRC_IN)
     }
 }

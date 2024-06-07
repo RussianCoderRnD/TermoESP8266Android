@@ -120,17 +120,6 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <ImageView
-        android:id="@+id/imageView"
-        android:layout_width="166dp"
-        android:layout_height="412dp"
-        android:layout_marginStart="160dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.0"
-        app:srcCompat="@drawable/gradusnik" />
-
-    <ImageView
         android:id="@+id/imageViewFaza1"
         android:layout_width="30dp"
         android:layout_height="30dp"
@@ -167,25 +156,31 @@
         app:layout_constraintStart_toStartOf="@+id/imageViewFazaOnOff"
         app:layout_constraintTop_toBottomOf="@+id/imageViewFazaOnOff" />
 
-    <ImageView
-        android:id="@+id/imageView3"
-        android:layout_width="30dp"
-        android:layout_height="30dp"
-        android:layout_marginStart="10dp"
-        app:layout_constraintBottom_toBottomOf="@+id/textViewTemp"
-        app:layout_constraintStart_toEndOf="@+id/textViewTemp"
-        app:layout_constraintTop_toTopOf="@+id/textViewTemp"
-        app:srcCompat="@drawable/celsiy" />
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="155dp"
+        android:layout_height="153dp"
+        android:layout_marginStart="16dp"
+        android:indeterminateOnly="false"
+        android:max="130"
+        android:progress="0"
+        android:progressDrawable="@drawable/vertical_progress_bar"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.492" />
 
     <TextView
         android:id="@+id/textViewTemp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="300dp"
-        android:layout_marginTop="50dp"
-        android:text="Temp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:text="0.0"
+        android:textSize="30dp"
+        app:layout_constraintBottom_toBottomOf="@+id/progressBar"
+        app:layout_constraintEnd_toEndOf="@+id/progressBar"
+        app:layout_constraintStart_toStartOf="@+id/progressBar"
+        app:layout_constraintTop_toTopOf="@+id/progressBar" />
 
     <TextView
         android:id="@+id/textView3"
@@ -246,5 +241,8 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:srcCompat="@drawable/off1" />
+
+
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>
