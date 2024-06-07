@@ -72,7 +72,7 @@ class MainActivity : AppCompatActivity() {
     // Runnable для периодического выполнения fetchDataFromESP8266
     private val fetchDataRunnable = object : Runnable {
         override fun run() {
-          //  receiveJsonFromEsp8266()
+            receiveJsonFromEsp8266()
             // Перезапускаем runnable через 1 секунду
 
 
@@ -132,7 +132,7 @@ class MainActivity : AppCompatActivity() {
                 mains(f1, f2, f3, pomp, hot)
                 receiveJsonFromEsp8266() // Получение JSON строки от ESP8266 при клике
                 // Установка значения переменной в TextView
-                textViewTemp.text = "$temp"
+                textViewTemp.text = temp.toString()
                 generateAndPrintJson() // Генерация и вывод JSON строки при клике
             }
         }
@@ -155,13 +155,11 @@ class MainActivity : AppCompatActivity() {
             if (counPower == 1) {
                 count++
 
-
                 textViewSetTemp.text = "$count"
                 if (count > 129) { count=130
                 }
             }
             val progressBar: ProgressBar = findViewById(R.id.progressBar)
-            progressBar.progress = count // Установите прогресс от 0 до 100
         }
 
         findViewById<ImageButton>(R.id.imageButtonDown).setOnClickListener {
@@ -216,7 +214,6 @@ class MainActivity : AppCompatActivity() {
             override fun onFailure(call: Call, e: IOException) { // Обработка ошибки запроса
                 println("Ошибка отправки JSON: ${e.message}") // Вывод сообщения об ошибке
             }
-
             override fun onResponse(call: Call, response: Response) { // Обработка ответа сервера
                 response.use { resp ->
                     if (resp.isSuccessful) { // Проверка успешности ответа
@@ -230,7 +227,6 @@ class MainActivity : AppCompatActivity() {
             }
         })
         updateProgressBarColor(temp)
-
     }
 
     private fun receiveJsonFromEsp8266() {
@@ -274,6 +270,8 @@ class MainActivity : AppCompatActivity() {
                             memtemp=memtemps.toFloat()
                             runOnUiThread {
                                 count= memtemp.toInt()
+                                progressBar.progress = temp.toInt() // Установите прогресс от 0 до 100
+
                                 receiveJsonFromEsp8266TextViwe()
                             }
                         }
