@@ -123,8 +123,8 @@
         android:id="@+id/imageViewFaza1"
         android:layout_width="30dp"
         android:layout_height="30dp"
-        app:layout_constraintStart_toEndOf="@+id/imageViewFazaOnOff"
-        app:layout_constraintTop_toTopOf="@+id/imageViewFazaOnOff" />
+        app:layout_constraintStart_toEndOf="@+id/imageViewPompOnOff"
+        app:layout_constraintTop_toTopOf="@+id/imageViewHotOnOff" />
 
     <ImageView
         android:id="@+id/imageViewFaza2"
@@ -141,20 +141,20 @@
         app:layout_constraintTop_toTopOf="@+id/imageViewFaza1" />
 
     <ImageView
-        android:id="@+id/imageViewFazaOnOff"
+        android:id="@+id/imageViewHotOnOff"
         android:layout_width="30dp"
         android:layout_height="30dp"
-        android:layout_marginStart="600dp"
-        android:layout_marginTop="50dp"
-        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginTop="48dp"
+        app:layout_constraintStart_toStartOf="@+id/imageViewPompOnOff"
         app:layout_constraintTop_toTopOf="parent" />
 
     <ImageView
         android:id="@+id/imageViewPompOnOff"
         android:layout_width="30dp"
         android:layout_height="30dp"
-        app:layout_constraintStart_toStartOf="@+id/imageViewFazaOnOff"
-        app:layout_constraintTop_toBottomOf="@+id/imageViewFazaOnOff" />
+        android:layout_marginStart="548dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/imageViewHotOnOff" />
 
     <ProgressBar
         android:id="@+id/progressBar"
